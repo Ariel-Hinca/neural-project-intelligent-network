@@ -1,0 +1,14 @@
+{
+  "model/check_fixture.py": {
+    "mtime": 1795521378.3878374,
+    "seen": 1795521394.528397,
+    "ast_hash": "a7d80dd5e461d9b2bb2c4cf51b5af935",
+    "semantic_hash": ""
+  },
+  "docs/STACK.md": {
+    "mtime": 1795521382.710187,
+    "seen": 1795521394.528397,
+    "ast_hash": "963f747789e7f988fdbddd2b5a48ea1b",
+    "semantic_hash": ""
+  }
+}

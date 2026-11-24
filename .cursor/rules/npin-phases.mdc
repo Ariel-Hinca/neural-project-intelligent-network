@@ -1,0 +1,15 @@
+---
+description: Build NPIN one phase at a time
+alwaysApply: true
+---
+
+# NPIN phases
+
+Phase 0 (skills, Cursor rules, stack note) and Phase 1 (node and edge kinds, SQLite schema, one hand-built example in `model/`) are done. Do not start the next phase until the user explicitly asks for it. One phase per sprint. Do not add that phase's UI, scanner, schema, or inheritance "while you are here."
+
+- Phase 1 — Model. Node and edge types, SQLite schema, one hand-built fixture graph. No window.
+- Phase 2 — One repo. Tauri window, pick one folder, run Graphify plus a manifest and Cursor-file scan, show a list. No force graph.
+- Phase 3 — One graph. sigma.js view of that repo, filter by kind, click a node to see its file.
+- Phase 4 — God's eye. Several roots, one merged graph, cross-repo links for a shared package, skill, API, or database.
+- Phase 5 — Shared memory. Canon vault. Diff a repo against the canon. Apply missing skills and rules only after confirmation.
+- Phase 6 — Living network. Watch folders and rescan what changed. Agents become nodes. Graphiti only if a Windows-local backend checks out.
