@@ -5,7 +5,7 @@ alwaysApply: true
 
 # NPIN phases
 
-Phase 0 (skills, Cursor rules, stack note) and Phase 1 (node and edge kinds, SQLite schema, one hand-built example in `model/`) are done. Do not start the next phase until the user explicitly asks for it. One phase per sprint. Do not add that phase's UI, scanner, schema, or inheritance "while you are here."
+Phase 0 and Phase 1 are done. Phase 2 code is in `app/`: one window that opens one folder and shows a list. The window has not been opened yet, because this PC has Rust but not the C++ libraries the window needs to compile. Do not start Phase 3 until the user explicitly asks for it. One phase per sprint. Do not add that phase's UI, scanner, schema, or inheritance "while you are here."
 
 - Phase 1 — Model. Node and edge types, SQLite schema, one hand-built fixture graph. No window.
 - Phase 2 — One repo. Tauri window, pick one folder, run Graphify plus a manifest and Cursor-file scan, show a list. No force graph.

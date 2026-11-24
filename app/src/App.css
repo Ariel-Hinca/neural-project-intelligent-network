@@ -1,0 +1,104 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", sans-serif;
+  background: #1c1f24;
+  color: #f2f4f8;
+}
+
+body {
+  margin: 0;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #3a404a;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 650;
+}
+
+button {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 10px 16px;
+  border: 1px solid #8ea0b8;
+  border-radius: 8px;
+  background: #2a3140;
+  color: inherit;
+  font: inherit;
+}
+
+button:focus-visible {
+  outline: 3px solid #f2f4f8;
+  outline-offset: 3px;
+}
+
+button:disabled {
+  opacity: 0.6;
+}
+
+main {
+  padding: 20px 24px 32px;
+}
+
+.note {
+  max-width: 62ch;
+  color: #c5ceda;
+}
+
+ul {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+li {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 4px 16px;
+  padding: 12px;
+  border: 1px solid #3a404a;
+  border-radius: 8px;
+}
+
+.kind {
+  font-weight: 650;
+}
+
+.name {
+  font-weight: 650;
+}
+
+.detail {
+  grid-column: 2;
+  color: #c5ceda;
+}
+
+progress {
+  width: min(240px, 100%);
+}
+
+@media (max-width: 640px) {
+  li {
+    grid-template-columns: 1fr;
+  }
+
+  .detail {
+    grid-column: 1;
+  }
+}
+
+@media (forced-colors: active) {
+  button:focus-visible {
+    outline: 3px solid CanvasText;
+  }
+}

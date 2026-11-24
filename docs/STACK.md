@@ -40,7 +40,7 @@ Local scanner: `uv` 0.13.9, `graphify` 0.9.118 on the user PATH (`uv tool update
 
 ## Later phases
 
-Phase 0 and Phase 1 are complete. The next sprint starts only when asked.
+Phase 0 and Phase 1 are complete. Phase 2 code is in `app/`, and the picture of the later map is `docs/npin-final-mockup.jpg`. The window has not been opened yet: Rust is installed, but the C++ libraries used to compile it are not. There is still no force graph. The next sprint starts only when asked.
 
 Phase 1 lives in `model/`: `schema.sql` (allowed kinds and links), `fixture.sql` (one hand-built example of this project), and `check_fixture.py` (loads that example into a temporary database). No window.
 
