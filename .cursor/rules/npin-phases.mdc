@@ -5,11 +5,11 @@ alwaysApply: true
 
 # NPIN phases
 
-Phase 0 and Phase 1 are done. Phase 2 code is in `app/`: one window that opens one folder and shows a list. The window has not been opened yet, because this PC has Rust but not the C++ libraries the window needs to compile. Do not start Phase 3 until the user explicitly asks for it. One phase per sprint. Do not add that phase's UI, scanner, schema, or inheritance "while you are here."
+Phase 0 and Phase 1 are done. Phase 2 and Phase 3 live in `app/`: one window that opens one folder, shows a 3D cloud, filters by kind, and shows a clicked dot's file. The window has not been opened yet, because this PC has Rust but not the C++ libraries the window needs to compile. Do not start Phase 4 until the user explicitly asks for it. One phase per sprint. Do not add that phase's UI, scanner, schema, or inheritance "while you are here."
 
 - Phase 1 — Model. Node and edge types, SQLite schema, one hand-built fixture graph. No window.
 - Phase 2 — One repo. Tauri window, pick one folder, run Graphify plus a manifest and Cursor-file scan, show a list. No force graph.
-- Phase 3 — One graph. sigma.js view of that repo, filter by kind, click a node to see its file.
+- Phase 3 — One graph. 3D cloud of that repo, filter by kind, click a dot to see its file.
 - Phase 4 — God's eye. Several roots, one merged graph, cross-repo links for a shared package, skill, API, or database.
 - Phase 5 — Shared memory. Canon vault. Diff a repo against the canon. Apply missing skills and rules only after confirmation.
 - Phase 6 — Living network. Watch folders and rescan what changed. Agents become nodes. Graphiti only if a Windows-local backend checks out.

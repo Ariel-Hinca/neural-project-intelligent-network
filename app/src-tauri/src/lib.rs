@@ -10,15 +10,65 @@ struct Found {
     detail: String,
 }
 
+#[derive(Debug, Serialize)]
+struct Node {
+    id: String,
+    kind: String,
+    name: String,
+    detail: String,
+    file: String,
+}
+
+#[derive(Debug, Serialize)]
+struct Link {
+    source: String,
+    target: String,
+}
+
+#[derive(Debug, Serialize)]
+struct Graph {
+    nodes: Vec<Node>,
+    links: Vec<Link>,
+    note: String,
+}
+
 #[tauri::command]
-fn scan_folder(path: String) -> Result<Vec<Found>, String> {
+fn scan_folder(path: String) -> Result<Graph, String> {
     let root = PathBuf::from(&path);
-    let mut found = scan_manifests(&root)?;
-    if let Some(repo) = found.first_mut() {
-        let note = graphify_note(&root);
-        repo.detail = format!("{} {note}", repo.detail);
+    let found = scan_manifests(&root)?;
+    let mut graph = graph_from_manifests(found);
+    graph.note = attach_graphify(&root, &mut graph);
+    Ok(graph)
+}
+
+fn graph_from_manifests(found: Vec<Found>) -> Graph {
+    let mut nodes = Vec::new();
+    let mut links = Vec::new();
+    for (index, item) in found.into_iter().enumerate() {
+        let id = if index == 0 {
+            "repo".to_string()
+        } else {
+            format!("{}:{}:{index}", item.kind, item.name)
+        };
+        if index > 0 {
+            links.push(Link {
+                source: "repo".into(),
+                target: id.clone(),
+            });
+        }
+        nodes.push(Node {
+            id,
+            kind: item.kind,
+            name: item.name,
+            detail: item.detail,
+            file: String::new(),
+        });
     }
-    Ok(found)
+    Graph {
+        nodes,
+        links,
+        note: String::new(),
+    }
 }
 
 fn scan_manifests(root: &Path) -> Result<Vec<Found>, String> {
@@ -147,7 +197,7 @@ fn collect_skills(dir: &Path, found: &mut Vec<Found>, depth: u8) {
     }
 }
 
-fn graphify_note(root: &Path) -> String {
+fn attach_graphify(root: &Path, graph: &mut Graph) -> String {
     let mut command = graphify_command();
     let output = command.arg("update").arg(".").current_dir(root).output();
     let output = match output {
@@ -166,12 +216,61 @@ fn graphify_note(root: &Path) -> String {
     let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
         return "Graphify wrote a graph file that could not be read.".into();
     };
-    let count = value
-        .get("nodes")
-        .and_then(|nodes| nodes.as_array())
-        .map(|nodes| nodes.len())
-        .unwrap_or(0);
-    format!("Graphify mapped {count} code things and wrote graphify-out in this folder.")
+    let Some(raw_nodes) = value.get("nodes").and_then(|nodes| nodes.as_array()) else {
+        return "Graphify wrote a graph with no dots.".into();
+    };
+    // shortcut: first 400 code dots, upgrade when a big folder needs a sampled cloud
+    let mut kept = std::collections::HashSet::new();
+    for raw in raw_nodes.iter().take(400) {
+        let Some(id) = raw.get("id").and_then(|item| item.as_str()) else {
+            continue;
+        };
+        let file = raw
+            .get("source_file")
+            .and_then(|item| item.as_str())
+            .unwrap_or("");
+        if file.contains(".env") {
+            continue;
+        }
+        let name = raw
+            .get("label")
+            .and_then(|item| item.as_str())
+            .unwrap_or(id);
+        let kind = match raw.get("file_type").and_then(|item| item.as_str()) {
+            Some("document") => "Document",
+            Some("rationale") => "Note",
+            _ => "Code",
+        };
+        let node_id = format!("g:{id}");
+        kept.insert(node_id.clone());
+        graph.nodes.push(Node {
+            id: node_id,
+            kind: kind.into(),
+            name: name.to_string(),
+            detail: "From the local code map.".into(),
+            file: file.to_string(),
+        });
+    }
+    if let Some(raw_links) = value.get("links").and_then(|links| links.as_array()) {
+        for raw in raw_links {
+            let Some(source) = raw.get("source").and_then(|item| item.as_str()) else {
+                continue;
+            };
+            let Some(target) = raw.get("target").and_then(|item| item.as_str()) else {
+                continue;
+            };
+            let source = format!("g:{source}");
+            let target = format!("g:{target}");
+            if kept.contains(&source) && kept.contains(&target) {
+                graph.links.push(Link { source, target });
+            }
+        }
+    }
+    format!(
+        "Graphify mapped {} code things. This cloud shows {} of them and wrote graphify-out in this folder.",
+        raw_nodes.len(),
+        kept.len()
+    )
 }
 
 // shortcut: also looks in the user .local/bin, upgrade when the app stores the scanner path
@@ -216,9 +315,11 @@ mod tests {
         fs::write(root.join(".cursor").join("rules").join("local.mdc"), "# rule").unwrap();
 
         let found = scan_manifests(&root).unwrap();
-        let text = format!("{found:?}");
-        assert!(found.iter().any(|item| item.kind == "Package" && item.name == "react"));
-        assert!(found.iter().any(|item| item.kind == "Rule" && item.name == "local.mdc"));
+        let graph = super::graph_from_manifests(found);
+        let text = format!("{graph:?}");
+        assert!(graph.nodes.iter().any(|item| item.kind == "Package" && item.name == "react"));
+        assert!(graph.nodes.iter().any(|item| item.kind == "Rule" && item.name == "local.mdc"));
+        assert!(graph.links.iter().any(|link| link.source == "repo"));
         assert!(!text.contains("super-secret-value"));
 
         fs::remove_dir_all(&root).unwrap();

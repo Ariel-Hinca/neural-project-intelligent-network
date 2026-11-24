@@ -7,7 +7,7 @@ NPIN (Neural Project Intelligent Network) is a local Windows desktop app: a God'
 - App shell: Tauri 2, React, TypeScript, Vite.
 - Code graph: local Graphify CLI (`graphifyy` 0.9.118). Per-repo output is `graphify-out/graph.json`. NPIN reads that file and does not reimplement parsing.
 - Canon store: one SQLite file in app data. No Neo4j and no Docker.
-- Graph view: sigma.js and graphology, in Phase 3.
+- Graph view: a 3D cloud (`react-force-graph-3d`), in Phase 3. Drag to turn it. A flat map was rejected.
 - Graphiti is not v1 memory. The embedded FalkorDB Lite path is not a Windows target. Revisit only in Phase 6 if a Windows-local backend is verified.
 - Electron is a fallback only if Tauri blocks file access or the graph view.
 
@@ -40,13 +40,13 @@ Local scanner: `uv` 0.13.9, `graphify` 0.9.118 on the user PATH (`uv tool update
 
 ## Later phases
 
-Phase 0 and Phase 1 are complete. Phase 2 code is in `app/`, and the picture of the later map is `docs/npin-final-mockup.jpg`. The window has not been opened yet: Rust is installed, but the C++ libraries used to compile it are not. There is still no force graph. The next sprint starts only when asked.
+Phase 0 and Phase 1 are complete. Phase 2 and Phase 3 are in `app/`: open one folder and see a 3D cloud. The picture in `docs/npin-final-mockup.jpg` is an older flat sketch. The window has not been opened yet: Rust is installed, but the C++ libraries used to compile it are not. The next sprint starts only when asked.
 
 Phase 1 lives in `model/`: `schema.sql` (allowed kinds and links), `fixture.sql` (one hand-built example of this project), and `check_fixture.py` (loads that example into a temporary database). No window.
 
 1. Model: done. Kinds, SQLite schema, one fixture graph. No window.
 2. One repo: Tauri window, one folder, Graphify plus manifest scan, list view.
-3. One graph: sigma.js for that repo.
+3. One graph: done in code. 3D cloud for that repo, filter by kind, click a dot to see its file. The window still needs the C++ libraries before it can open.
 4. God's eye: several roots, one merged graph.
 5. Shared memory: canon vault, diff, confirmed apply.
 6. Living network: watch and rescan. Agents as nodes. Graphiti only if Windows-local storage checks out.
