@@ -1,7 +1,10 @@
-# Tauri + React + Typescript
+# NPIN window
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+This folder is the desktop window. How the project works, and how to open it, is in the [README](../README.md) at the root of the repo.
 
-## Recommended IDE Setup
+Do not double-click a built `app.exe`. From this folder:
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+```powershell
+npm install
+npm run tauri dev
+```
