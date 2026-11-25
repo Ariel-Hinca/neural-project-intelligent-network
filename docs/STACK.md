@@ -40,13 +40,13 @@ Local scanner: `uv` 0.13.9, `graphify` 0.9.118 on the user PATH (`uv tool update
 
 ## Later phases
 
-Phase 0 and Phase 1 are complete. Phase 2 and Phase 3 are in `app/`: open one folder and see a 3D cloud. The picture in `docs/npin-final-mockup.jpg` is an older flat sketch. The window has not been opened yet: Rust is installed, but the C++ libraries used to compile it are not. The next sprint starts only when asked.
+Phase 0 and Phase 1 are complete. Phases 2 through 5 are in `app/`: add several folders, see one 3D cloud, and keep skills and rules in a canon database. A package, skill, API, or database used by more than one folder is one shared dot. Compare a folder with the canon, then write missing skills and rules only after confirmation. The picture in `docs/npin-final-mockup.jpg` is an older flat sketch. The window has not been opened yet: Rust is installed, but the C++ libraries used to compile it are not. The next sprint starts only when asked.
 
 Phase 1 lives in `model/`: `schema.sql` (allowed kinds and links), `fixture.sql` (one hand-built example of this project), and `check_fixture.py` (loads that example into a temporary database). No window.
 
 1. Model: done. Kinds, SQLite schema, one fixture graph. No window.
 2. One repo: Tauri window, one folder, Graphify plus manifest scan, list view.
-3. One graph: done in code. 3D cloud for that repo, filter by kind, click a dot to see its file. The window still needs the C++ libraries before it can open.
-4. God's eye: several roots, one merged graph.
-5. Shared memory: canon vault, diff, confirmed apply.
+3. One graph: done in code. 3D cloud, filter by kind, click a dot to see its file.
+4. God's eye: done in code. Several folders, one merged cloud. Shared package, skill, API, and database dots.
+5. Shared memory: done in code. Canon vault in app data. Diff a folder. Apply missing skills and rules only after confirmation. The window still needs the C++ libraries before it can open.
 6. Living network: watch and rescan. Agents as nodes. Graphiti only if Windows-local storage checks out.
