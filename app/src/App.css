@@ -257,6 +257,16 @@ select {
   border-right: 1px solid rgba(215, 226, 240, 0.16);
 }
 
+.bar .color-choice legend {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0 4px 0 0;
+  overflow: visible;
+  clip-path: none;
+  color: #e8eef6;
+}
+
 .bar legend {
   position: absolute;
   width: 1px;
@@ -326,8 +336,18 @@ aside p {
 }
 
 .kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: #e8eef6;
   font-weight: 600;
+}
+
+.swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  flex: none;
 }
 
 dialog:modal {

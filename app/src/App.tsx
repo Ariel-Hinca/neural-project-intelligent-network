@@ -38,6 +38,43 @@ function folderName(path: string) {
   return parts[parts.length - 1] ?? path;
 }
 
+const kindHue: Record<string, number> = {
+  Code: 18,
+  Note: 138,
+  Document: 258,
+  Repository: 78,
+  Package: 198,
+  Skill: 318,
+  Agent: 48,
+  Rule: 168,
+  Service: 228,
+  API: 288,
+  Database: 108,
+  Concept: 348,
+};
+
+const sharedColor = "hsl(0 0% 78%)";
+
+function hueColor(hue: number) {
+  return `hsl(${hue} 72% 62%)`;
+}
+
+function projectOf(id: string, roots: string[]) {
+  const body = id.startsWith("g:") ? id.slice(2) : id.startsWith("repo:") ? id.slice(5) : "";
+  if (!body) {
+    return "";
+  }
+  let best = "";
+  for (const root of roots) {
+    const marker = `${root}:`;
+    const nested = `${root}\\`;
+    if ((body === root || body.startsWith(marker) || body.startsWith(nested)) && root.length > best.length) {
+      best = root;
+    }
+  }
+  return best;
+}
+
 function noteLines(note: string) {
   return note
     .split(/(?=Graphify )/)
@@ -93,6 +130,7 @@ function App() {
   const stage = useRef<HTMLElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
+  const [colorBy, setColorBy] = useState<"project" | "kind">("project");
   const rootsRef = useRef<string[]>([]);
   const busyRef = useRef(false);
   const pendingRoot = useRef<string | null>(null);
@@ -390,6 +428,23 @@ function App() {
     );
   }
 
+  const projectColor = useMemo(() => {
+    const step = 360 / Math.max(roots.length, 1);
+    const colors = new Map<string, string>();
+    roots.forEach((root, index) => {
+      colors.set(root, hueColor((index * step + 18) % 360));
+    });
+    return colors;
+  }, [roots]);
+
+  function dotColor(node: Node) {
+    if (colorBy === "kind") {
+      return hueColor(kindHue[node.kind] ?? 0);
+    }
+    const project = projectOf(node.id, roots);
+    return projectColor.get(project) ?? sharedColor;
+  }
+
   const summary =
     roots.length === 0
       ? "No folders open."
@@ -413,7 +468,10 @@ function App() {
               <ul className="scans">
                 {roots.map((path, index) => (
                   <li key={path}>
-                    <span className="kind" title={path}>{folderName(path)}</span>
+                    <span className="kind" title={path}>
+                      <span className="swatch" style={{ background: projectColor.get(path) }} aria-hidden="true" />
+                      {folderName(path)}
+                    </span>
                     <span className="count">
                       {scans.length === roots.length ? shownCount(scans[index]) : ""}
                     </span>
@@ -518,11 +576,35 @@ function App() {
                       checked={shown.includes(kind)}
                       onChange={() => toggleKind(kind)}
                     />
+                    {colorBy === "kind" ? (
+                      <span className="swatch" style={{ background: hueColor(kindHue[kind] ?? 0) }} aria-hidden="true" />
+                    ) : null}
                     {kind}
                   </label>
                 ))}
               </fieldset>
             ) : null}
+            <fieldset className="color-choice">
+              <legend>Color</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="color-by"
+                  checked={colorBy === "project"}
+                  onChange={() => setColorBy("project")}
+                />
+                Project
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="color-by"
+                  checked={colorBy === "kind"}
+                  onChange={() => setColorBy("kind")}
+                />
+                Kind
+              </label>
+            </fieldset>
             <button type="button" onClick={addFolders} disabled={busy}>
               Add folders
             </button>
@@ -537,8 +619,12 @@ function App() {
                 width={size.width}
                 height={size.height}
                 backgroundColor="#07080c"
-                nodeAutoColorBy="kind"
-                nodeLabel={(node) => `${node.kind}: ${node.name}`}
+                nodeColor={(node) => dotColor(node as Node)}
+                nodeLabel={(node) => {
+                  const item = node as Node;
+                  const project = folderName(projectOf(item.id, roots));
+                  return project ? `${project} · ${item.kind}: ${item.name}` : `${item.kind}: ${item.name}`;
+                }}
                 nodeRelSize={4}
                 onNodeClick={(node) => setSelected(node as Node)}
               />
