@@ -40,7 +40,7 @@ Local scanner: `uv` 0.13.9, `graphify` 0.9.118 on the user PATH (`uv tool update
 
 ## Later phases
 
-Phase 0 and Phase 1 are complete. Phases 2 through 5 are in `app/`: add several folders, see one 3D cloud, and keep skills and rules in a canon database. A package, skill, API, or database used by more than one folder is one shared dot. Compare a folder with the canon, then write missing skills and rules only after confirmation. The picture in `docs/npin-final-mockup.jpg` is an older flat sketch. The window has not been opened yet: Rust is installed, but the C++ libraries used to compile it are not. The next sprint starts only when asked.
+Phase 0 and Phase 1 are complete. Phases 2 through 6 are in `app/`: add several folders, see one 3D cloud, keep skills and rules in a canon database, and rescan a folder when its files change. A package, skill, API, or database used by more than one folder is one shared dot. Agent files in `.cursor/agents` are dots. Compare a folder with the canon, then write missing skills and rules only after confirmation. The picture in `docs/npin-final-mockup.jpg` is an older flat sketch. The window opens when the Visual Studio desktop C++ tools are on PATH.
 
 Phase 1 lives in `model/`: `schema.sql` (allowed kinds and links), `fixture.sql` (one hand-built example of this project), and `check_fixture.py` (loads that example into a temporary database). No window.
 
@@ -48,5 +48,5 @@ Phase 1 lives in `model/`: `schema.sql` (allowed kinds and links), `fixture.sql`
 2. One repo: Tauri window, one folder, Graphify plus manifest scan, list view.
 3. One graph: done in code. 3D cloud, filter by kind, click a dot to see its file.
 4. God's eye: done in code. Several folders, one merged cloud. Shared package, skill, API, and database dots.
-5. Shared memory: done in code. Canon vault in app data. Diff a folder. Apply missing skills and rules only after confirmation. The window still needs the C++ libraries before it can open.
-6. Living network: watch and rescan. Agents as nodes. Graphiti only if Windows-local storage checks out.
+5. Shared memory: done in code. Canon vault in app data. Diff a folder. Apply missing skills and rules only after confirmation.
+6. Living network: done in code. Open folders are watched, and a change rescans that folder. Agent markdown files in `.cursor/agents` are dots. Graphiti is not included. FalkorDB Lite rejects Windows, and Graphiti's embedded Relate driver was not verified here as a Windows-local store.

@@ -1,8 +1,11 @@
+use notify::Watcher;
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use tauri::{Emitter, Manager};
 
 #[derive(Debug, Serialize)]
 struct Found {
@@ -11,7 +14,7 @@ struct Found {
     detail: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct Node {
     id: String,
     kind: String,
@@ -20,13 +23,13 @@ struct Node {
     file: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct Link {
     source: String,
     target: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct Graph {
     nodes: Vec<Node>,
     links: Vec<Link>,
@@ -34,31 +37,60 @@ struct Graph {
 }
 
 #[tauri::command]
-fn scan_roots(paths: Vec<String>) -> Result<Graph, String> {
+fn scan_roots(app: tauri::AppHandle, paths: Vec<String>) -> Result<Graph, String> {
+    let unique = unique_paths(paths);
+    if unique.is_empty() {
+        return Err("Choose a folder.".into());
+    }
+    let mut parts = Vec::new();
+    for path in &unique {
+        parts.push(scan_one(path)?);
+    }
+    let merged = merge_all(&parts);
+    let live = app.state::<Live>();
+    {
+        let mut guard = live.inner.lock().expect("watch");
+        guard.roots = unique;
+        guard.parts = parts;
+        guard.dirty.clear();
+    }
+    arm_watch(&live);
+    Ok(merged)
+}
+
+fn unique_paths(paths: Vec<String>) -> Vec<String> {
     let mut unique = Vec::new();
     for path in paths {
         if !unique.contains(&path) {
             unique.push(path);
         }
     }
-    if unique.is_empty() {
-        return Err("Choose a folder.".into());
-    }
+    unique
+}
+
+fn scan_one(path: &str) -> Result<Graph, String> {
+    let root = PathBuf::from(path);
+    let found = scan_manifests(&root)?;
+    let mut graph = graph_from_manifests(found, path);
+    graph.note = attach_graphify(&root, &mut graph, path);
+    Ok(graph)
+}
+
+fn merge_all(parts: &[Graph]) -> Graph {
     let mut merged = Graph {
         nodes: Vec::new(),
         links: Vec::new(),
         note: String::new(),
     };
     let mut notes = Vec::new();
-    for path in &unique {
-        let root = PathBuf::from(path);
-        let found = scan_manifests(&root)?;
-        let mut graph = graph_from_manifests(found, path);
-        notes.push(attach_graphify(&root, &mut graph, path));
-        merge_graph(&mut merged, graph);
+    for part in parts {
+        if !part.note.is_empty() {
+            notes.push(part.note.clone());
+        }
+        merge_graph(&mut merged, part.clone());
     }
     merged.note = notes.join(" ");
-    Ok(merged)
+    merged
 }
 
 fn is_shared_kind(kind: &str) -> bool {
@@ -89,10 +121,19 @@ fn graph_from_manifests(found: Vec<Found>, repo_path: &str) -> Graph {
         }
         nodes.push(Node {
             id,
-            kind: item.kind,
-            name: item.name,
+            kind: item.kind.clone(),
+            name: item.name.clone(),
             detail: item.detail,
-            file: String::new(),
+            file: if item.kind == "Agent" {
+                Path::new(repo_path)
+                    .join(".cursor")
+                    .join("agents")
+                    .join(format!("{}.md", item.name))
+                    .display()
+                    .to_string()
+            } else {
+                String::new()
+            },
         });
     }
     Graph {
@@ -151,6 +192,7 @@ fn scan_manifests(root: &Path) -> Result<Vec<Found>, String> {
     read_database(root, &mut found);
     read_rules(root, &mut found);
     read_skills(root, &mut found);
+    read_agents(root, &mut found);
     if root.join("AGENTS.md").is_file() {
         found.push(Found {
             kind: "Rule".into(),
@@ -306,6 +348,31 @@ fn collect_skills(dir: &Path, found: &mut Vec<Found>, depth: u8) {
         } else {
             collect_skills(&path, found, depth + 1);
         }
+    }
+}
+
+// shortcut: only markdown files directly inside .cursor/agents, upgrade when a repo nests agent files
+fn read_agents(root: &Path, found: &mut Vec<Found>) {
+    let Ok(entries) = fs::read_dir(root.join(".cursor").join("agents")) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let filename = entry.file_name().to_string_lossy().to_string();
+        let Some(name) = filename.strip_suffix(".md") else {
+            continue;
+        };
+        if name.is_empty() {
+            continue;
+        }
+        found.push(Found {
+            kind: "Agent".into(),
+            name: name.to_string(),
+            detail: "Cursor agent in this folder.".into(),
+        });
     }
 }
 
@@ -719,12 +786,134 @@ fn apply_canon_to_folder(
     apply_canon(&canon_root(&app)?, Path::new(&root), &picks, confirmed)
 }
 
+struct LiveInner {
+    roots: Vec<String>,
+    parts: Vec<Graph>,
+    dirty: std::collections::HashMap<String, Instant>,
+}
+
+struct Live {
+    inner: Arc<Mutex<LiveInner>>,
+    watcher: Mutex<Option<notify::RecommendedWatcher>>,
+}
+
+// shortcut: noisy folders are filtered after the event, upgrade when a large folder should not be watched recursively
+fn path_is_noise(path: &Path) -> bool {
+    path.components().any(|component| {
+        let text = component.as_os_str().to_string_lossy();
+        matches!(
+            text.as_ref(),
+            "node_modules" | "graphify-out" | "target" | ".git" | "dist"
+        )
+    })
+}
+
+fn root_for_change(roots: &[String], path: &Path) -> Option<String> {
+    let path = plain_path(path);
+    let path = Path::new(&path);
+    if path_is_noise(path) {
+        return None;
+    }
+    roots
+        .iter()
+        .filter(|root| path.starts_with(plain_path(Path::new(root))))
+        .max_by_key(|root| root.len())
+        .cloned()
+}
+
+fn plain_path(path: &Path) -> String {
+    let text = path.to_string_lossy();
+    text.strip_prefix(r"\\?\").unwrap_or(&text).to_string()
+}
+
+fn arm_watch(live: &Live) {
+    let roots = live.inner.lock().expect("watch").roots.clone();
+    let inner = Arc::clone(&live.inner);
+    let Ok(mut watcher) = notify::recommended_watcher(move |result: Result<notify::Event, notify::Error>| {
+        let Ok(event) = result else {
+            return;
+        };
+        let mut guard = inner.lock().expect("watch");
+        for path in event.paths {
+            if let Some(root) = root_for_change(&guard.roots, &path) {
+                guard.dirty.insert(root, Instant::now());
+            }
+        }
+    }) else {
+        return;
+    };
+    for root in &roots {
+        let _ = watcher.watch(Path::new(root), notify::RecursiveMode::Recursive);
+    }
+    *live.watcher.lock().expect("watch") = Some(watcher);
+}
+
+#[tauri::command]
+fn rescan_root(app: tauri::AppHandle, path: String) -> Result<Graph, String> {
+    let part = scan_one(&path)?;
+    let live = app.state::<Live>();
+    let mut guard = live.inner.lock().expect("watch");
+    let Some(index) = guard.roots.iter().position(|root| root == &path) else {
+        return Err("That folder is not open.".into());
+    };
+    guard.parts[index] = part;
+    Ok(merge_all(&guard.parts))
+}
+
+#[tauri::command]
+fn clear_watch(app: tauri::AppHandle) {
+    let live = app.state::<Live>();
+    {
+        let mut guard = live.inner.lock().expect("watch");
+        guard.roots.clear();
+        guard.parts.clear();
+        guard.dirty.clear();
+    }
+    *live.watcher.lock().expect("watch") = None;
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let inner = Arc::new(Mutex::new(LiveInner {
+        roots: Vec::new(),
+        parts: Vec::new(),
+        dirty: std::collections::HashMap::new(),
+    }));
+    let pump = Arc::clone(&inner);
     tauri::Builder::default()
+        .manage(Live {
+            inner,
+            watcher: Mutex::new(None),
+        })
         .plugin(tauri_plugin_dialog::init())
+        .setup(move |app| {
+            let handle = app.handle().clone();
+            std::thread::spawn(move || loop {
+                std::thread::sleep(Duration::from_millis(400));
+                let ready = {
+                    let mut guard = pump.lock().expect("watch");
+                    let now = Instant::now();
+                    let ready: Vec<String> = guard
+                        .dirty
+                        .iter()
+                        .filter(|(_, seen)| now.duration_since(**seen) >= Duration::from_millis(800))
+                        .map(|(root, _)| root.clone())
+                        .collect();
+                    for root in &ready {
+                        guard.dirty.remove(root);
+                    }
+                    ready
+                };
+                for root in ready {
+                    let _ = handle.emit("root-changed", root);
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             scan_roots,
+            rescan_root,
+            clear_watch,
             canon_list,
             keep_canon,
             diff_against_canon,
@@ -862,5 +1051,35 @@ mod tests {
         assert!(after.iter().all(|gap| !gap.missing));
 
         fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn lists_an_agent_and_skips_scanner_output() {
+        let root = std::env::temp_dir().join(format!("npin-agent-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join(".cursor").join("agents")).unwrap();
+        fs::write(root.join(".cursor").join("agents").join("reviewer.md"), "# reviewer").unwrap();
+        fs::write(
+            root.join(".cursor").join("agents").join(".env"),
+            "PASSWORD=super-secret-value",
+        )
+        .unwrap();
+
+        let found = scan_manifests(&root).unwrap();
+        let repo_path = root.display().to_string();
+        let graph = super::graph_from_manifests(found, &repo_path);
+        let agent = graph.nodes.iter().find(|node| node.kind == "Agent").unwrap();
+        assert_eq!(agent.name, "reviewer");
+        assert!(agent.file.ends_with("reviewer.md"));
+        assert!(!format!("{graph:?}").contains("super-secret-value"));
+
+        let roots = vec![repo_path.clone()];
+        assert_eq!(
+            super::root_for_change(&roots, &root.join("src").join("main.rs")).as_deref(),
+            Some(repo_path.as_str())
+        );
+        assert!(super::root_for_change(&roots, &root.join("graphify-out").join("graph.json")).is_none());
+
+        fs::remove_dir_all(&root).unwrap();
     }
 }

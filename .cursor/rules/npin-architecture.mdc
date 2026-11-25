@@ -13,7 +13,7 @@ Stack, fixed until the user changes it:
 - Code graph: local Graphify CLI (`graphifyy`). It writes `graphify-out/graph.json` per repo. NPIN reads that file. Do not reimplement a parser. Do not upload private repos to hosted Graphify. The hosted Graphify plugin was declined; the local CLI is the scanner.
 - Canon store: one SQLite file in app data. No Neo4j and no Docker.
 - Graph view: a 3D cloud (`react-force-graph-3d`). Drag to turn it, filter by kind, click a dot to see its file. Do not go back to a flat map.
-- Graphiti is not the v1 memory. Revisit it only in Phase 6 if a Windows-local backend is verified.
+- Graphiti is not the memory store. FalkorDB Lite rejects Windows. The embedded Relate driver was not verified here as a Windows-local store, and Graphiti still expects a hosted model by default.
 
 Edges are extracted (code, manifests, Cursor files) or canon (decisions kept on purpose). Writing skills or rules into another repository happens only after the user confirms that repository.
 

@@ -5,7 +5,7 @@ alwaysApply: true
 
 # NPIN phases
 
-Phase 0 and Phase 1 are done. Phases 2 through 5 live in `app/`: one window that adds several folders, shows one 3D cloud, and keeps a canon of skills and rules. A package, skill, API, or database used by more than one folder is one shared dot. Compare a folder with the canon, then write missing skills and rules only after confirmation. The window has not been opened yet, because this PC has Rust but not the C++ libraries the window needs to compile. Do not start Phase 6 until the user explicitly asks for it. One phase per sprint. Do not add that phase's UI, scanner, schema, or inheritance "while you are here."
+Phase 0 and Phase 1 are done. Phases 2 through 6 live in `app/`: one window that adds several folders, shows one 3D cloud, keeps a canon of skills and rules, and rescans a folder when its files change. A package, skill, API, or database used by more than one folder is one shared dot. Agent files in `.cursor/agents` are dots. Compare a folder with the canon, then write missing skills and rules only after confirmation. The window opens when the Visual Studio desktop C++ tools are on PATH. One phase per sprint. Do not add another phase's UI, scanner, schema, or inheritance "while you are here."
 
 - Phase 1 — Model. Node and edge types, SQLite schema, one hand-built fixture graph. No window.
 - Phase 2 — One repo. Tauri window, pick one folder, run Graphify plus a manifest and Cursor-file scan, show a list. No force graph.
