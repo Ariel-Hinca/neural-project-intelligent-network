@@ -45,6 +45,37 @@ function noteLines(note: string) {
     .filter(Boolean);
 }
 
+function shownCount(line: string) {
+  const mapped = /mapped (\d+)/.exec(line);
+  const shown = /shows (\d+)/.exec(line);
+  if (!mapped || !shown) {
+    return "Not read";
+  }
+  const total = Number(mapped[1]);
+  const kept = Number(shown[1]);
+  if (kept === total) {
+    return kept.toLocaleString();
+  }
+  return `${kept.toLocaleString()} of ${total.toLocaleString()}`;
+}
+
+function friendlyStatus(status: string) {
+  if (status.includes("every canon")) {
+    return "This folder already has everything you saved.";
+  }
+  if (status.includes("Some canon")) {
+    return "Some saved skills or rules are missing here.";
+  }
+  if (status.includes("in the canon")) {
+    return status.replace("Kept ", "Saved ").replace(" in the canon.", ".");
+  }
+  const updated = /^Updated (.+)\. Showing/.exec(status);
+  if (updated) {
+    return `Updated ${folderName(updated[1])}.`;
+  }
+  return status;
+}
+
 function App() {
   const [roots, setRoots] = useState<string[]>([]);
   const [graph, setGraph] = useState<Graph>(empty);
@@ -135,7 +166,7 @@ function App() {
       setSelected((current) =>
         current && next.nodes.some((node) => node.id === current.id) ? current : null,
       );
-      setStatus(`Updated ${path}. Showing ${next.nodes.length} dots.`);
+      setStatus(`Updated ${folderName(path)}.`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
@@ -288,8 +319,8 @@ function App() {
       );
       openReport(
         next.some((gap) => gap.missing)
-          ? "Some canon skills or rules are missing from this folder."
-          : "This folder already has every canon skill and rule.",
+          ? "Some saved skills or rules are missing here."
+          : "This folder already has everything you saved.",
       );
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -362,7 +393,7 @@ function App() {
   const summary =
     roots.length === 0
       ? "No folders open."
-      : `Showing ${graph.nodes.length} dots from ${roots.length} ${roots.length === 1 ? "folder" : "folders"}.`;
+      : `Showing ${graph.nodes.length.toLocaleString()} dots from ${roots.length} ${roots.length === 1 ? "folder" : "folders"}.`;
   const scans = noteLines(graph.note);
 
   return (
@@ -371,32 +402,37 @@ function App() {
         <details className="report" ref={report}>
           <summary>{summary}</summary>
           <div className="report-body">
-            {status ? <p aria-live="polite">{status}</p> : null}
-            <p className="note">
-              Add more than one folder. Open folders stay watched, and a change
-              rescans that folder. A package, skill, API, or database used by two
-              folders is one shared dot. An agent file becomes a dot. Drag the
-              cloud to turn it. Click a skill or rule, then keep it in the canon.
-              Compare a folder and write the missing files only after you confirm.
-              This writes a graphify-out folder in each project you add. Password
-              files are not opened.
-            </p>
-            {scans.length > 0 ? (
+            {status ? <p className="status" aria-live="polite">{friendlyStatus(status)}</p> : null}
+            <ul className="hints">
+              <li>Open folders stay up to date.</li>
+              <li>A shared package, skill, API, or database is one dot.</li>
+              <li>Drag to turn. Click a skill or rule to save it.</li>
+              <li>Copy missing files only after you confirm.</li>
+            </ul>
+            {roots.length > 0 ? (
               <ul className="scans">
-                {scans.map((line, index) => (
-                  <li key={`${index}-${line}`}>
-                    {scans.length === roots.length ? (
-                      <span className="kind">{folderName(roots[index])}</span>
-                    ) : null}{" "}
-                    {line}
+                {roots.map((path, index) => (
+                  <li key={path}>
+                    <span className="kind" title={path}>{folderName(path)}</span>
+                    <span className="count">
+                      {scans.length === roots.length ? shownCount(scans[index]) : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeRoot(path)}
+                      disabled={busy}
+                    >
+                      Remove
+                    </button>
                   </li>
                 ))}
               </ul>
             ) : null}
+            <p className="quiet">Password files stay closed.</p>
             <fieldset>
-              <legend>Canon</legend>
+              <legend>Saved</legend>
               {canon.length === 0 ? (
-                <p>No skills or rules kept yet.</p>
+                <p>Nothing saved yet.</p>
               ) : (
                 <ul className="canon">
                   {canon.map((entry) => (
@@ -426,7 +462,7 @@ function App() {
                     </select>
                   </label>
                   <button type="button" onClick={compareFolder} disabled={busy}>
-                    Compare with canon
+                    Check this folder
                   </button>
                 </div>
               ) : null}
@@ -465,22 +501,6 @@ function App() {
                 </button>
               ) : null}
             </fieldset>
-            {roots.length > 0 ? (
-              <ul className="roots">
-                {roots.map((path) => (
-                  <li key={path}>
-                    <span title={path}>{folderName(path)}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeRoot(path)}
-                      disabled={busy}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
           </div>
         </details>
         {error ? <p className="alert" role="alert">{error}</p> : null}
@@ -538,9 +558,9 @@ function App() {
                 {selected.kind === "Skill" || selected.kind === "Rule" ? (
                   <>
                     <button type="button" onClick={keepSelected} disabled={busy || roots.length === 0}>
-                      Keep in canon
+                      Save
                     </button>
-                    <p>Uses the folder chosen in the menu above.</p>
+                    <p>Uses the folder picked above.</p>
                   </>
                 ) : null}
               </>
@@ -556,7 +576,7 @@ function App() {
         onClose={() => void onConfirmClose()}
       >
         <h1 id="confirm-title">Write these into the folder?</h1>
-        <p>{compareRoot || roots[0]}</p>
+        <p>{folderName(compareRoot || roots[0] || "")}</p>
         <ul>
           {chosen.map((key) => {
             const [kind, name] = key.split("\n");

@@ -644,7 +644,7 @@ fn keep_in_canon(dir: &Path, root: &Path, kind: &str, name: &str) -> Result<Stri
     let conn = open_canon(dir)?;
     ensure_canon_repo(&conn)?;
     remember_node(&conn, kind, name)?;
-    Ok(format!("Kept {name} in the canon."))
+    Ok(format!("Saved {name}."))
 }
 
 fn list_canon(dir: &Path) -> Result<Vec<CanonEntry>, String> {
@@ -711,7 +711,7 @@ fn apply_canon(
             )
             .map_err(|error| error.to_string())?;
         if stored != 1 {
-            return Err(format!("The canon has no {} named {}.", pick.kind, pick.name));
+            return Err(format!("Nothing saved named {}.", pick.name));
         }
         match pick.kind.as_str() {
             "Skill" => {
@@ -722,7 +722,7 @@ fn apply_canon(
                 }
                 let source = dir.join("files").join("skills").join(&pick.name);
                 if !source.join("SKILL.md").is_file() {
-                    return Err(format!("The canon has no files for {}.", pick.name));
+                    return Err(format!("No saved files for {}.", pick.name));
                 }
                 copy_tree(&source, &dest)?;
                 wrote.push(pick.name.clone());
@@ -735,7 +735,7 @@ fn apply_canon(
                 }
                 let source = dir.join("files").join("rules").join(&pick.name);
                 if !source.is_file() {
-                    return Err(format!("The canon has no files for {}.", pick.name));
+                    return Err(format!("No saved files for {}.", pick.name));
                 }
                 if let Some(parent) = dest.parent() {
                     fs::create_dir_all(parent).map_err(|error| error.to_string())?;

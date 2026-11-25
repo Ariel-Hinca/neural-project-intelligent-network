@@ -102,33 +102,55 @@ main {
   scrollbar-color: #3c4858 transparent;
 }
 
-.note {
-  max-width: 68ch;
-  margin: 0 0 16px;
-  line-height: 1.5;
+.status {
+  margin: 0 0 12px;
+  color: #e8eef6;
+}
+
+.hints {
+  max-width: 42ch;
+  margin: 0 0 18px;
+  padding-left: 1.1rem;
+  line-height: 1.45;
+}
+
+.hints li {
+  margin-bottom: 4px;
+}
+
+.quiet {
+  margin: 0 0 8px;
+  color: #c5d2e2;
 }
 
 .scans,
-.canon,
-.roots {
+.canon {
   list-style: none;
   margin: 0 0 16px;
   padding: 0;
 }
 
-.scans li,
-.canon li,
-.roots li {
-  margin-bottom: 8px;
-  line-height: 1.45;
+.scans {
+  max-width: 36rem;
 }
 
-.roots li {
-  display: flex;
+.scans li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  max-width: 36rem;
+  margin-bottom: 4px;
+}
+
+.count {
+  color: #e8eef6;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.canon li {
+  margin-bottom: 8px;
+  line-height: 1.45;
 }
 
 fieldset {
